@@ -1,11 +1,12 @@
 {
   "domain": "mytreno",
   "name": "MyTreno",
-  "version": "v2.2.1",
+  "version": "v2.3.0",
   "config_flow": true,
   "requirements": [],
   "dependencies": [],
-  "codeowners": ["@LoTableT"],
+  "codeowners": ["@HotBlaster"],
   "iot_class": "cloud_polling",
-  "documentation": "https://github.com/lotablet/mytreno"
+  "documentation": "https://github.com/HotBlaster/mytreno",
+  "issue_tracker": "https://github.com/HotBlaster/mytreno/issues"
 }

@@ -1,9 +1,13 @@
-# **DISCONTINUED** 
+# ⚠️ Fork non ufficiale
 
-A causa di altri impegni non potrò più aggiornare questo componente.
+Questo repository è un **fork** di [lotablet/mytreno](https://github.com/lotablet/mytreno), il cui progetto originale **non è più mantenuto** dall'autore.
 
-Grazie a tutti del supporto 🙏🏻❤️
+Il fork nasce per mantenere l'integrazione funzionante con le versioni recenti di Home Assistant (es. 2026.10).
 
+> **Nota:** la manutenzione è svolta **con l'aiuto dell'intelligenza artificiale**.
+> Gli aggiornamenti potrebbero essere **lenti**.
+
+Tutto il merito del progetto originale va a [@lotablet](https://github.com/lotablet). Se vuoi sostenere l'autore originale:
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png)](https://www.buymeacoffee.com/lotablet)
 
@@ -35,7 +39,7 @@ Se nel componente manca la tua stazione preferita [SCRIVI QUI](https://github.co
 2. Clicca su Menu **⋮ → Aggiungi repository personalizzato**
 3. Inserisci questo URL e scegli tipo **"Integrazione"** :
 ```
-https://github.com/lotablet/mytreno
+https://github.com/HotBlaster/mytreno
 ```
 
 
@@ -56,23 +60,25 @@ https://github.com/lotablet/mytreno
 
 ## MyTreno Card
 
-![version](https://img.shields.io/badge/version-1.1.0-blue)
-![hacs](https://img.shields.io/badge/HACS-default-orange)
+![version](https://img.shields.io/badge/version-2.3.0-blue)
+![hacs](https://img.shields.io/badge/HACS-custom-orange)
 
 > Card Lovelace per visualizzare partenze e arrivi dei treni usando ViaggiaTreno.
+> Repository: [HotBlaster/mytreno-card](https://github.com/HotBlaster/mytreno-card) (fork di [lotablet/mytreno-card](https://github.com/lotablet/mytreno-card))
 
-## 📦 Installazione via HACS
+## 📦 Installazione via HACS (Custom repositories)
 
-1. Vai in HACS → Frontend → Menu ⋮ → "Archivi digitali personalizzati"
-2. Inserisci l'URL della repo e imposta tipo: `Lovelace`:
-
-```
-https://github.com/lotablet/mytreno-card/
-```
-
-
-3. Installa `MyTreno Card`
-4. Aggiungi la card in Lovelace (la trovi nella lista)
+1. Se hai già installato la *MyTreno Card* originale (lotablet), rimuovila: **HACS → MyTreno Card → ⋮ → Rimuovi**
+2. Vai in **HACS → Menu ⋮ (in alto a destra) → Custom repositories** (*Archivi digitali personalizzati*)
+3. Compila i campi:
+   - **Repository:**
+     ```
+     https://github.com/HotBlaster/mytreno-card
+     ```
+   - **Tipo:** `Dashboard` (nelle versioni meno recenti di HACS: `Lovelace` / `Plugin`)
+4. Clicca **Aggiungi**, poi cerca **MyTreno Card** in HACS e clicca **Scarica**
+5. Ricarica la pagina del browser (svuota la cache se la card non compare)
+6. Aggiungi la card nella dashboard (la trovi nella lista delle card)
 
 La card richiede solo il sensore creato tramite l'integrazione:
 ```

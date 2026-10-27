@@ -1,12 +1,18 @@
-import aiohttp
-from datetime import datetime, timezone, timedelta
+import logging
+from datetime import datetime, timezone
+from urllib.parse import quote
 from zoneinfo import ZoneInfo                      # Python 3.9+
+
+import aiohttp
+from yarl import URL
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
-from .const import URL_BASE
+from .const import HTTP_HEADERS, REQUEST_TIMEOUT, URL_BASE
+
+_LOGGER = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  Fuso / conversioni tempo
@@ -28,11 +34,17 @@ def _ms_to_iso_utc(ms):
 # ─────────────────────────────────────────────────────────────────────────────
 #  Helpers “storici” per tabellone partenze / arrivi
 # ─────────────────────────────────────────────────────────────────────────────
+_DAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
 def build_timestamp() -> str:
     """Stringa timestamp che ViaggiaTreno vuole per partenza/arrivi."""
-    now = datetime.now(timezone(timedelta(hours=2)))  # CET/CEST
-    return now.strftime(
-        "%a %b %d %Y %H:%M:%S GMT+0200 (Ora legale dell’Europa centrale)"
+    now = datetime.now(_TZ)
+    # English names regardless of system locale, e.g. "Tue Oct 27 2026 15:40:00 GMT+0100"
+    return (
+        f"{_DAYS[now.weekday()]} {_MONTHS[now.month - 1]} "
+        f"{now:%d %Y %H:%M:%S} GMT{now:%z}"
     )
 
 def roman_to_int(roman: str):
@@ -48,7 +60,7 @@ def roman_to_int(roman: str):
 
 async def fetch_data(hass: HomeAssistant, station_id: str):
     """Partenze e arrivi di una stazione (tutti i treni disponibili dall'API)."""
-    timestamp = build_timestamp()
+    timestamp = quote(build_timestamp(), safe="")
     urls = {
         "partenze": f"{URL_BASE}/partenze/{station_id}/{timestamp}",
         "arrivi":   f"{URL_BASE}/arrivi/{station_id}/{timestamp}",
@@ -58,12 +70,25 @@ async def fetch_data(hass: HomeAssistant, station_id: str):
 
     for kind, url in urls.items():
         try:
-            async with session.get(url, timeout=10) as res:
+            async with session.get(
+                URL(url, encoded=True),
+                headers=HTTP_HEADERS,
+                timeout=REQUEST_TIMEOUT,
+            ) as res:
                 if res.status != 200:
+                    body = (await res.text())[:200]
+                    _LOGGER.warning(
+                        "MyTreno %s %s: HTTP %s, body=%r", kind, station_id, res.status, body
+                    )
                     continue
-                trains_raw = await res.json()
+                trains_raw = await res.json(content_type=None)
                 if not isinstance(trains_raw, list):
+                    _LOGGER.warning(
+                        "MyTreno %s %s: risposta inattesa (%s): %r",
+                        kind, station_id, type(trains_raw).__name__, str(trains_raw)[:200],
+                    )
                     continue
+                _LOGGER.debug("MyTreno %s %s: %d treni da %s", kind, station_id, len(trains_raw), url)
 
                 # chiavi diverse per arrivi/partenze
                 bin_prog_key = (
@@ -113,7 +138,7 @@ async def fetch_data(hass: HomeAssistant, station_id: str):
 async def _resolve_train(train_number: str, session: aiohttp.ClientSession):
     """/cercaNumeroTrenoTrenoAutocomplete → station_id + timestamp."""
     url = f"{URL_BASE}/cercaNumeroTrenoTrenoAutocomplete/{train_number}"
-    async with session.get(url, timeout=10) as res:
+    async with session.get(url, headers=HTTP_HEADERS, timeout=REQUEST_TIMEOUT) as res:
         txt = (await res.text()).strip()
         if res.status != 200 or not txt:
             raise UpdateFailed(f"Treno {train_number} non trovato (HTTP {res.status})")
@@ -148,14 +173,14 @@ async def fetch_train_data(hass: HomeAssistant, train_number: str):
     # ── 3.  tratteCanvas   (tutte le fermate)
     url_tratte    = f"{URL_BASE}/tratteCanvas/{station_id}/{train_number}/{ts}"
 
-    async with session.get(url_andamento, timeout=10) as res_a, \
-               session.get(url_tratte,    timeout=10) as res_t:
+    async with session.get(url_andamento, headers=HTTP_HEADERS, timeout=REQUEST_TIMEOUT) as res_a, \
+               session.get(url_tratte,    headers=HTTP_HEADERS, timeout=REQUEST_TIMEOUT) as res_t:
         if res_a.status != 200:
             raise UpdateFailed(f"Errore HTTP {res_a.status} su andamentoTreno")
-        andamento = await res_a.json()
+        andamento = await res_a.json(content_type=None)
         if res_t.status != 200:
             raise UpdateFailed(f"Errore HTTP {res_t.status} su tratteCanvas")
-        tratte_raw = await res_t.json()
+        tratte_raw = await res_t.json(content_type=None)
         if not isinstance(tratte_raw, list):
             tratte_raw = []
 

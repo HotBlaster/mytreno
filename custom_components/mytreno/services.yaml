@@ -1,0 +1,17 @@
+set_train:
+  name: Imposta treno
+  description: Imposta il numero del treno da seguire nel sensore "Treno selezionato".
+  fields:
+    train_number:
+      name: Numero treno
+      description: Numero del treno da seguire.
+      required: true
+      example: "3925"
+      selector:
+        text:
+    entry_id:
+      name: Entry ID
+      description: ID della config entry (opzionale).
+      required: false
+      selector:
+        text:

@@ -3,12 +3,14 @@ from __future__ import annotations
 from datetime import timedelta
 import logging
 
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     CoordinatorEntity,
 )
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import generate_entity_id
 
@@ -23,8 +25,9 @@ GLOBAL_TRACK_KEY = "global_tracking"  # sensore unico “selected train”
 # ─────────────────────────────────────────────────────────────────────────────
 #  Entity: Tabellone stazione
 # ─────────────────────────────────────────────────────────────────────────────
-class MyTrenoStationSensor(CoordinatorEntity):
+class MyTrenoStationSensor(CoordinatorEntity, SensorEntity):
     _attr_icon = "mdi:train"
+    _attr_native_value = "ok"  # heartbeat
 
     def __init__(self, coordinator, station_id, station_name):
         super().__init__(coordinator)
@@ -34,27 +37,23 @@ class MyTrenoStationSensor(CoordinatorEntity):
         )
         self._attr_unique_id = f"{DOMAIN}_station_{slug}"
         self._attr_name = station_name
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, station_id)},
-            "name": f"Stazione {station_name}",
-            "manufacturer": "Trenitalia",
-            "model": "MyTreno Station",
-            "entry_type": "service",
-        }
-
-    @property
-    def state(self):
-        return "ok"  # heartbeat
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, station_id)},
+            name=f"Stazione {station_name}",
+            manufacturer="Trenitalia",
+            model="MyTreno Station",
+            entry_type=DeviceEntryType.SERVICE,
+        )
 
     @property
     def extra_state_attributes(self):
-        return self.coordinator.data
+        return self.coordinator.data or {}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  Entity: Treno selezionato (globale)
 # ─────────────────────────────────────────────────────────────────────────────
-class MyTrenoSelectedTrainSensor(CoordinatorEntity):
+class MyTrenoSelectedTrainSensor(CoordinatorEntity, SensorEntity):
     _attr_icon = "mdi:train-car"
 
     def __init__(self, coordinator, container):
@@ -63,21 +62,20 @@ class MyTrenoSelectedTrainSensor(CoordinatorEntity):
         self.entity_id = "sensor.mytreno_selected_train"
         self._attr_unique_id = f"{DOMAIN}_selected_train"
         self._attr_name = "Treno selezionato"
-        self._attr_device_info = None
 
     @property
-    def state(self):
-        return self.coordinator.data.get("ritardo")
+    def native_value(self):
+        return (self.coordinator.data or {}).get("ritardo")
 
     @property
     def extra_state_attributes(self):
-        return self.coordinator.data
+        return self.coordinator.data or {}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  Entity: Treno fisso configurato
 # ─────────────────────────────────────────────────────────────────────────────
-class MyTrenoStaticTrainSensor(CoordinatorEntity):
+class MyTrenoStaticTrainSensor(CoordinatorEntity, SensorEntity):
     _attr_icon = "mdi:train-car"
 
     def __init__(self, coordinator, train_number):
@@ -86,21 +84,21 @@ class MyTrenoStaticTrainSensor(CoordinatorEntity):
         self._attr_unique_id = f"{DOMAIN}_static_{train_number}"
         self._attr_name = f"Treno {train_number}"
         self._train_number = train_number
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, train_number)},
-            "name": f"Treno {train_number}",
-            "manufacturer": "Trenitalia",
-            "model": "MyTreno Static Train",
-            "entry_type": "service",
-        }
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, train_number)},
+            name=f"Treno {train_number}",
+            manufacturer="Trenitalia",
+            model="MyTreno Static Train",
+            entry_type=DeviceEntryType.SERVICE,
+        )
 
     @property
-    def state(self):
-        return self.coordinator.data.get("ritardo")
+    def native_value(self):
+        return (self.coordinator.data or {}).get("ritardo")
 
     @property
     def extra_state_attributes(self):
-        return self.coordinator.data
+        return self.coordinator.data or {}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -123,6 +121,7 @@ async def async_setup_entry(
         station_coord = DataUpdateCoordinator(
             hass,
             logger=_LOGGER,
+            config_entry=entry,
             name=f"mytreno_station_{station_id}",
             update_method=_upd_station,
             update_interval=timedelta(minutes=5),
@@ -168,6 +167,7 @@ async def async_setup_entry(
         static_coord = DataUpdateCoordinator(
             hass,
             logger=_LOGGER,
+            config_entry=entry,
             name=f"mytreno_static_train_{train_number}",
             update_method=_upd_static,
             update_interval=timedelta(seconds=60),
