@@ -28,6 +28,8 @@ GLOBAL_TRACK_KEY = "global_tracking"  # sensore unico “selected train”
 class MyTrenoStationSensor(CoordinatorEntity, SensorEntity):
     _attr_icon = "mdi:train"
     _attr_native_value = "ok"  # heartbeat
+    # Liste troppo grandi per il recorder (>16 KB): restano solo nello stato live
+    _unrecorded_attributes = frozenset({"partenze", "arrivi"})
 
     def __init__(self, coordinator, station_id, station_name):
         super().__init__(coordinator)
@@ -55,6 +57,7 @@ class MyTrenoStationSensor(CoordinatorEntity, SensorEntity):
 # ─────────────────────────────────────────────────────────────────────────────
 class MyTrenoSelectedTrainSensor(CoordinatorEntity, SensorEntity):
     _attr_icon = "mdi:train-car"
+    _unrecorded_attributes = frozenset({"fermate"})
 
     def __init__(self, coordinator, container):
         super().__init__(coordinator)
@@ -77,6 +80,7 @@ class MyTrenoSelectedTrainSensor(CoordinatorEntity, SensorEntity):
 # ─────────────────────────────────────────────────────────────────────────────
 class MyTrenoStaticTrainSensor(CoordinatorEntity, SensorEntity):
     _attr_icon = "mdi:train-car"
+    _unrecorded_attributes = frozenset({"fermate"})
 
     def __init__(self, coordinator, train_number):
         super().__init__(coordinator)
